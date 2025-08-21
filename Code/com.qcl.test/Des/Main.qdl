@@ -1,0 +1,178 @@
+&require: ["qstd"]
+
+
+&styles: {
+
+  shape_button: {
+    Size: {W: 110, H: 34}
+    Margins: {
+      Left: 10
+      Top:  6
+    }
+
+    BorderRadius: 18
+
+    ^OnClick: "But1_OnClick"
+  }
+
+  nav_button: {
+    Size: {W: 120, H: 26}
+    Margins: {
+      Left: 5
+      Top:  8
+    }
+
+    BorderRadius: 10
+  }
+}
+
+
+&subs: [
+{
+  &name: "MainForm"
+  &type: "qstd::form"
+
+  &subs: [
+  { &name: "PanelSide", &type: "qstd::layout_vert"
+
+    Size: {W: 130, H: 0}
+    Anchors: {
+      Left: { Active: 1, Control: "@PanelSideEx", Side: "end" }
+      Top:  { Active: 1, Control: "@PanelNav", Side: "end"}
+      Bot:  { Active: 1, Control: "@MainForm" }
+    }
+
+    BackColor: {R: 40, G: 40, B: 40}
+    BorderRadius: 0
+
+    &subs: [
+    { &name: "But_Dot",    &type: "qstd::button", &style: "shape_button"
+
+      Text: "Dot"
+      Tag: 1
+
+      Margins: {
+        Top:  10
+      }
+    }
+    { &name: "But_Line",   &type: "qstd::button", &style: "shape_button"
+
+      Text: "Line"
+      Tag: 2
+    }
+    { &name: "But_Rect",   &type: "qstd::button", &style: "shape_button"
+
+      Text: "Rect"
+      Tag: 3
+    }
+    { &name: "But_Text",   &type: "qstd::button", &style: "shape_button"
+
+      Text: "Text"
+      Tag: 4
+    }
+    { &name: "But_Circle", &type: "qstd::button", &style: "shape_button"
+
+      Text: "Circle"
+      Tag: 5
+    }
+    { &name: "But_Arc",    &type: "qstd::button", &style: "shape_button"
+
+      Text: "Arc"
+      Tag: 6
+    }
+    { &name: "But_PLine",  &type: "qstd::button", &style: "shape_button"
+
+      Text: "Polyline"
+      Tag: 7
+    }
+    { &name: "But_PGon",   &type: "qstd::button", &style: "shape_button"
+
+      Text: "Polygon"
+      Tag: 8
+    }
+    ]
+  }
+  { &name: "PanelSideEx", &type: "qstd::layout"
+
+    Visible: 0
+
+    Size: {W: 150, H: 0}
+    Anchors: {
+      Left: { Active: 1, Control: "@MainForm" }
+      Top:  { Active: 1, Control: "@PanelNav", Side: "end"}
+      Bot:  { Active: 1, Control: "@MainForm" }
+    }
+
+    &subs: [
+    { &name: "Label1", &type: "qstd::button"
+
+      Text: "PanelSideEx"
+
+      Size: {W: 0, H: 30}
+      Anchors: {
+        Left: { Active: 1, Control: "@PanelSideEx" }
+        Top:  { Active: 1, Control: "@PanelSideEx" }
+        Righ:  { Active: 1, Control: "@PanelSideEx", Side: "end"}
+      }
+
+    }
+    ]
+  }
+  { &name: "PanelNav", &type: "qstd::layout_horz"
+
+    Size: {W: 0, H: 42}
+    Anchors: {
+      Left: { Active: 1, Control: "@MainForm" }
+      Top:  { Active: 1, Control: "@MainForm" }
+      Righ: { Active: 1, Control: "@MainForm" }
+    }
+
+    BackColor: {R: 55, G: 55, B: 55}
+    BorderRadius: 0
+
+    &subs: [
+    { &name: "Nav_Menu",    &type: "qstd::button"
+
+      Text: " "
+
+      Size: {W: 34, H: 34}
+      Margins: {
+        Left: 4
+        Top:  4
+      }
+
+      BorderRadius: 8
+
+      ^OnClick: "Nav_Menu"
+    }
+    { &name: "Nav_1",    &type: "qstd::button", &style: "nav_button"
+
+      Text: "Page 1"
+      Tag: 1
+    }
+    { &name: "Nav_2",   &type: "qstd::button", &style: "nav_button"
+
+      Text: "Page 2"
+      Tag: 2
+    }
+    { &name: "Nav_Add",   &type: "qstd::button", &style: "nav_button"
+
+      Text: "+"
+
+      Size: {W: 26, H: 26}
+      Margins: {
+        Left: 5
+        Top:  8
+      }
+
+      BorderRadius: 14
+
+      ^OnClick: "Nav_Add"
+    }
+    
+    ]
+  }
+  ]
+
+}
+]

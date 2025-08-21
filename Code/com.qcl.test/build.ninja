@@ -1,0 +1,47 @@
+#
+#  This file is part of QAOS.
+#
+#  This file is licensed under the GNU Lesser General Public License version 3 (LGPLv3).
+#
+#  You should have received a copy of GNU Lesser General Public License
+#  along with QAOS. If not, see <https://www.gnu.org/licenses/>.
+#
+#  Copyright (c) 2025 by Kadir Aydın.
+#
+
+
+
+include ../../rules.ninja
+
+
+# Target
+build Build: phony $Out/Base.moqs
+
+Incs = -I$DEV/lib.qaos.basis.dev/Inc -I$DEV/lib.qaos.jconf.dev/Inc -I$DEV/lib.qaos.qcl.dev/Inc -I$DEV/lib.qaos.qcl.qstd.dev/Inc
+Links = $COD/lib.qaos.qcl/$Lib/libQCL.a $COD/lib.qaos.qcl.qstd/$Lib/libQCL_qstd.a $COD/lib.qaos.qcl.x11/$Lib/libQCL_x11.a $COD/lib.qaos.jconf/$Lib/libJConf.a -lcairo -lX11
+
+
+# Pack
+build $Out/Base.moqs: TR $Out/Base.moq $Out/Base.sig
+  dir = $Out
+  files = Base.moq Base.sig
+
+
+build $Out/Base.sig: SG $Out/Base.moq
+  file = $Out/Base.moq
+
+
+build $Out/Base.moq: MQ Package.conf $Bin
+
+
+# Files
+build $Bin: phony $Bin/Main.elf
+
+build $Bin/Main.elf: CX $Tmp/Main.o
+  links = $Links
+
+
+build $Tmp/Main.o: CX Dev/Main.cc
+  opt = -c
+  inc = $Incs
+
