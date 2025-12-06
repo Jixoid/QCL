@@ -1,23 +1,14 @@
 # Helpers
 .obsidian
-.vscode
+.vscode*
 .stfolder*
 .directory
-.vscode-ctags
+.clangd
 
 
 # Compiled files and Not applyed plans
 **@*
 **!*
-**.o
-**.a
-**.so*
-**.ko
-**.qo
-**.elf
-**.exe
-auto.ninja
-.ninja_log
 
 
 # Configs

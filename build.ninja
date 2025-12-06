@@ -1,7 +1,0 @@
-include rules.ninja
-
-subninja Code/auto.ninja
-subninja Devel/auto.ninja
-
-
-build Build: phony Code/Build Devel/Build

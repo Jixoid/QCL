@@ -19,12 +19,7 @@ Build:
 	@echo
 
 
-	@echo -e "📦 $(BLUE)devel$(RESET)"
-	@$(MAKE) -C Devel  Build
-	@echo
-
-	@echo -e "💠 $(BLUE)code$(RESET)"
-	@$(MAKE) -C Code  Build
+	@$(MAKE) -C Pkgs  Build
 	@echo
 
 	@echo "Successfuly Compiled!"
@@ -36,12 +31,7 @@ Clean:
 	@echo
 
 
-	@echo -e "📦 $(BLUE)devel$(RESET)"
-	@$(MAKE) -C Devel  Clean
-	@echo
-
-	@echo -e "💠 $(BLUE)code$(RESET)"
-	@$(MAKE) -C Code  Clean
+	@$(MAKE) -C Pkgs  Clean
 	@echo
 
 

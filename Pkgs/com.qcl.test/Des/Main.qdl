@@ -1,0 +1,82 @@
+&require: ["qstd"]
+
+
+&styles: {}
+
+
+&subs: [
+{
+  &name: "MainForm"
+  &type: "qstd::form"
+
+  &subs: [
+  { &name: "BarTop" &type: "qstd::layout"
+
+    Size: {w: 0, h: 50}
+
+    Anchors: {
+      left: { active: true, control: "@^", side: "<-" }
+      top:  { active: true, control: "@^", side: "<-" }
+      righ: { active: true, control: "@^", side: "->" }
+    }
+
+    Color: "Monet.Back"
+    BorderRadius: 0
+
+    &subs: [
+    { &name: "Title" &type: "qstd::text"
+
+      Anchors: {
+        left: { active: true, control: "@^", side: "<-" }
+        top:  { active: true, control: "@^", side: "<-" }
+        bot: { active: true, control: "@^", side: "->" }
+      }
+
+      Margins: {
+        left: 14
+      }
+
+      Text: "QCL App"
+      FontSize: 20
+    }
+    ]
+  }
+  { &name: "BarBody" &type: "qstd::layout"
+
+    Anchors: {
+      left: { active: true, control: "@^", side: "<-" }
+      top:  { active: true, control: "@BarTop", side: "->" }
+      bot:  { active: true, control: "@^", side: "->" }
+      righ: { active: true, control: "@^", side: "->" }
+    }
+
+    Color: "Monet.BackDark"
+    BorderRadius: 0
+
+
+    &subs: [
+    { &name: "btnContiue" &type: "qstd::card"
+
+      AutoSize: true
+
+      Anchors: {
+        left: { active: true, control: "@^", side: "<-" }
+        righ:  { active: true, control: "@^", side: "->" }
+        top: { active: true, control: "@^", side: "<-" }
+      }
+
+      &subs: [
+      { &name: "__nil" &type: "qstd::text"
+
+        Text: "Continue"
+        FontSize: 20
+        Color: "Monet.TextDark"
+      }
+      ]
+    }
+    ]
+  }
+  ]
+
+}
+]

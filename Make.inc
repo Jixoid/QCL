@@ -10,11 +10,10 @@
 #
 
 
-# Bash
-SHELL = /bin/bash
 
 
 # Colors
+
 GRAY = \e[1;30m
 GREEN = \e[1;32m
 BLUE = \e[1;34m
@@ -23,47 +22,41 @@ RED = \e[1;91m
 RESET = \e[0m
 
 
-# Locates
-Locate = /home/alforce/Projeler/QCL
-COD = $(Locate)/Code
-DEV = $(Locate)/Devel
-
-
 # Compile
-_O_Level = -O2
 
+_O_Level = -O2
 
 CONFIG_Arch_X64=y
 
 ifeq ($(CONFIG_Arch_X64), y)
-  Arch = X64
+  Arch = x64
   CTarget = x86_64
   PTarget = x86_64
 else ifeq ($(CONFIG_Arch_X32), y)
-  Arch = X32
+  Arch = x32
   CTarget = i386
   PTarget = i386
 
 else ifeq ($(CONFIG_Arch_A64), y)
-  Arch = A64
+  Arch = a64
   CTarget = aarch64
   PTarget = aarch64
 else ifeq ($(CONFIG_Arch_A32), y)
-  Arch = A32
+  Arch = a32
   CTarget = arm
   PTarget = arm
 
 else ifeq ($(CONFIG_Arch_R64), y)
-  Arch = R64
+  Arch = r64
   CTarget = riscv64
   PTarget = riscv64
 else ifeq ($(CONFIG_Arch_R32), y)
-  Arch = R32
+  Arch = r32
   CTarget = riscv32
   PTarget = riscv32
 
 else ifeq ($(CONFIG_Arch_P64), y)
-  Arch = P64
+  Arch = p64
   CTarget = powerpc64le
   PTarget = powerpc64le
 endif
@@ -71,25 +64,24 @@ endif
 
 
 # Params
+
+Locate = /home/alforce/Projeler/QCL
+
 GOut = !Out
-Out = $(GOut)/$(Arch)
+Out = $(GOut)/$(shell echo -n "linux-gnu-$(Arch)-$(_O_Level)" | sha256sum | cut -d' ' -f1 | cut -c1-10)
 Tmp = $(Out)/Tmp
 Bin = $(Out)/Bin
 Lib = $(Out)/Lib
+Nuc = $(Out)/Nuc
 
 
-
-CArg = -fPIC -IInc $(_O_Level) \
-   \
-  \
-  -rdynamic \
-  \
-  -Wno-unused-command-line-argument
-
+CArg = -fPIC \
+	-Wno-unused-result \
+  -Wno-unused-command-line-argument \
 
 
 CC = clang    $(CArg) $(CONFIG_CC_Params) -std=c23
-CP = clang++  $(CArg) $(CONFIG_CP_Params) -std=c++23
+CX = clang++  $(CArg) $(CONFIG_CX_Params) -std=c++23
 
 AR = $(CTarget)-linux-gnu-ar $(CONFIG_AR_Params)
 LD = $(CTarget)-linux-gnu-ld $(CONFIG_LD_Params)
@@ -102,7 +94,7 @@ SIG = openssl pkeyutl -sign -in $(Out)/Base.moq.sha512 -inkey $(Locate)/!Dev/Key
 
 
 L_CC = "    ⚙️ $(GRAY)CC$(RESET)"
-L_CP = "    ⚙️ $(GRAY)CP$(RESET)"
+L_CX = "    ⚙️ $(GRAY)CX$(RESET)"
 
 L_AR = "    🔗 $(GRAY)AR$(RESET)"
 L_LD = "    🔗 $(GRAY)LD$(RESET)"
