@@ -595,13 +595,13 @@ namespace qstd
       if (X->Poit.X != TempP.X || X->Poit.Y != TempP.Y)
       {
         X->Poit = TempP;
-        X->Flag_Add(MustRebound);
+        X->Flag_Add(DirtyRebound);
       }
 
       if (X->Size.W != TempE.X-TempP.X || X->Size.H != TempE.Y-TempP.Y)
       {
         X->Size = {TempE.X-TempP.X, TempE.Y-TempP.Y};
-        X->Flag_Add(MustResize | MustRebound);
+        X->Flag_Add(DirtyResize | DirtyRebound);
       }
 
     }
@@ -618,12 +618,12 @@ namespace qstd
       if (X->Anchors.Bot.Active)
       {
         X->Poit = {X->Margins.X1, X->Poit.Y};
-        X->Flag_Add(MustRebound);
+        X->Flag_Add(DirtyRebound);
         continue;
       }
       
       X->Poit = {X->Margins.X1, StartPos};
-      X->Flag_Add(MustRebound);
+      X->Flag_Add(DirtyRebound);
 
       LastMargin = X->Margins.Y2;
       StartPos += X->Size.H;
@@ -631,7 +631,7 @@ namespace qstd
 
   }
 
-  size_i32 layout_vert::CalcAutoSize()
+  void layout_vert::CalcAutoSize()
   {
     // Set vert layout
     i32 StartPos = 0;
@@ -652,7 +652,7 @@ namespace qstd
       AWidth = max(AWidth, X->Margins.X1 +X->Margins.X2 +X->Size.W);
 
 
-    return {AWidth, StartPos};
+    PreferedSize = {AWidth, StartPos};
   }
 
   #pragma endregion
@@ -681,12 +681,12 @@ namespace qstd
       if (X->Anchors.Righ.Active)
       {
         X->Poit = {X->Poit.X, X->Margins.Y1};
-        X->Flag_Add(MustRebound);
+        X->Flag_Add(DirtyRebound);
         continue;
       }
 
       X->Poit = {StartPos, X->Margins.Y1};
-      X->Flag_Add(MustRebound);
+      X->Flag_Add(DirtyRebound);
 
       LastMargin = X->Margins.X2;
       StartPos += X->Size.W;
@@ -695,7 +695,7 @@ namespace qstd
     view::Do_Tiling();
   }
 
-  size_i32 layout_horz::CalcAutoSize()
+  void layout_horz::CalcAutoSize()
   {
     // Set horz layout
     i32 StartPos = 0;
@@ -716,7 +716,7 @@ namespace qstd
       AHeight = max(AHeight, X->Margins.Y1 +X->Margins.Y2 +X->Size.H);
 
 
-    return {StartPos, AHeight};
+    PreferedSize = {StartPos, AHeight};
   }
 
   #pragma endregion
@@ -774,7 +774,7 @@ namespace qstd
     view::Do_Tiling();
   }
 
-  size_i32 layout_flow::CalcAutoSize()
+  void layout_flow::CalcAutoSize()
   {
     poit_i32 CPos = {0, 0};
     poit_i32 LPad = {0, 0}; // R,B
@@ -821,7 +821,7 @@ namespace qstd
     MaxW = max(MaxW, CPos.X);
     MaxH = CPos.Y + LineHeight;
 
-    return {MaxW, MaxH};
+    PreferedSize = {MaxW, MaxH};
   }
 
   #pragma endregion
@@ -902,18 +902,15 @@ namespace qstd
     Surface->Fill();
   }
 
-  size_i32 text::CalcAutoSize()
+  void text::CalcAutoSize()
   {
     Surface->Set_FontSize(FontSize);
     size_f32 TSize = Surface->Calc_Text(Text.c_str());
 
     TSize.W += 8;
     TSize.H += 8;
-
-    return {
-      (i32)TSize.W,
-      (i32)TSize.H,
-    };
+    
+    PreferedSize = {(i32)TSize.W, (i32)TSize.H};
   }
 
   bool text::LoadProp(string Name, const jconf::Value& Prop)
@@ -930,7 +927,7 @@ namespace qstd
 
       Text = (string)Prop;
       
-      Flag_Add(MustAutoSize);
+      Flag_Add(DirtyAutoSize);
       return true;
     }
 
@@ -956,7 +953,7 @@ namespace qstd
       
       FontSize = (i64)Prop;
 
-      Flag_Add(MustAutoSize);
+      Flag_Add(DirtyAutoSize);
       return true;
     }
 
@@ -2575,7 +2572,7 @@ namespace qstd
           pair<u32, popup*> *Pair = (pair<u32, popup*>*)Data;
 
           Pair->second->Size = {Pair->second->Size.W, (i32)Pair->first};
-          Pair->second->Flag_Add(MustResize | MustRebound);
+          Pair->second->Flag_Add(DirtyResize | DirtyRebound);
 
           CurrentApp->PushMessage(Pair->second->GetRoot(), controlMessages::cmPaint);
 
@@ -2626,7 +2623,7 @@ namespace qstd
         return;
 
       VItems = VItems->Items[0]->Parent;
-      Flag_Add(MustDraw);
+      Flag_Add(DirtyDraw);
 
       Do_MouseMove(Pos, 0);
 
@@ -2652,7 +2649,7 @@ namespace qstd
     else
     {
       VItems = VItems->Items[NHSel].get();
-      Flag_Add(MustDraw);
+      Flag_Add(DirtyDraw);
 
       Do_MouseMove(Pos, 0);
 

@@ -31,7 +31,7 @@ Dirs = \
 Links = \
 	../lib.qaos.qcl.qstd/$(Lib)/libQCL_qstd.a \
 	../lib.qaos.qcl.opengl/$(Lib)/libQCL_qgl.a \
-	../lib.qaos.qcl.x11/$(Lib)/libQCL_platform.a \
+	../lib.qaos.qcl.x11/$(Lib)/libQCL_platform.so \
 	../lib.qaos.qcl/$(Lib)/libQCL.a \
 	../lib.qaos.jconf/$(Lib)/libJConf.a \
 	../lib.qaos.qcl.x11/Lib/libresvg.a \

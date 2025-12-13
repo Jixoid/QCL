@@ -11,12 +11,14 @@
 
 
 
+#include <format>
 #define ef else if
 #define el else
 
 #include <memory>
 #include <vector>
 #include <ranges>
+#include <algorithm>
 
 #include "Basis.h"
 
@@ -24,6 +26,7 @@
 #include "qcl/View.hh"
 #include "qcl/Graphic.hh"
 #include "qcl/Application.hh"
+#include "qcl/Platform.hh"
 
 using namespace std;
 using namespace jix;
@@ -101,7 +104,7 @@ namespace qcl
     Childs.push_back(std::move(Ctrl));
 
 
-    Flag_Add(MustDraw | MustAutoSize | MustTiling);
+    Flag_Add(DirtyDraw | DirtyAutoSize | DirtyTiling);
   }
 
   void view::Child_Rem(control* Ctrl)
@@ -144,7 +147,7 @@ namespace qcl
 
 
 
-  size_i32 view::CalcAutoSize()
+  void view::CalcAutoSize()
   {
     rect_i32 Bound = {0,0,0,0};
 
@@ -163,7 +166,7 @@ namespace qcl
       if (Bottom > Bound.Y2) Bound.Y2 = Bottom;
     }
 
-    return {Bound.X2, Bound.Y2};
+    PreferedSize = {Bound.X2, Bound.Y2};
   }
 
   void view::Draw_after()
@@ -359,117 +362,243 @@ namespace qcl
 
 
 
+  void view::TilingScanH(vector<control*> &HList, control *This)
+  {
+    if (This->_TC_Visiting)
+    {
+      string Msg = "a circular depency is caught";
+      platform::qcl_error(Msg.c_str()); 
+    }
+
+
+    This->_TC_Visiting = true;
+
+    if (This->Anchors.Left.Active && This->Anchors.Left.Control != Nil && This->Anchors.Left.Control != this)
+      TilingScanH(HList, This->Anchors.Left.Control);
+
+    if (This->Anchors.Righ.Active && This->Anchors.Righ.Control != Nil && This->Anchors.Righ.Control != this)
+      TilingScanH(HList, This->Anchors.Righ.Control);
+
+    This->_TC_Visiting = false;
+
+
+    if (auto fnd = std::find(HList.begin(), HList.end(), This); fnd == HList.end())
+      HList.push_back(This);
+  }
+
+  void view::TilingScanV(vector<control*> &VList, control *This)
+  {
+    if (This->_TC_Visiting)
+    {
+      string Msg = "a circular depency is caught";
+      platform::qcl_error(Msg.c_str()); 
+    }
+
+
+    This->_TC_Visiting = true;
+    
+    if (This->Anchors.Top.Active && This->Anchors.Top.Control != Nil && This->Anchors.Top.Control != this)
+      TilingScanV(VList, This->Anchors.Top.Control);
+
+    if (This->Anchors.Bot.Active && This->Anchors.Bot.Control != Nil && This->Anchors.Bot.Control != this)
+      TilingScanV(VList, This->Anchors.Bot.Control);
+
+    This->_TC_Visiting = false;
+
+
+    if (auto fnd = std::find(VList.begin(), VList.end(), This); fnd == VList.end())
+      VList.push_back(This);
+  }
+
+
   void view::Do_Tiling()
   {
-    // Apply Anchors
+    // Pass 1: Horz & Vert Scan
+    vector<control*> CList;
+
     for (auto &X: Childs)
     {
-      poit_i32 TempP = X->Poit;
+      X->_TC_Visiting = false;
+      X->_TC_Visited = false;
+    }
+    for (auto &X: Childs) TilingScanH(CList, X.get());
+
+    for (auto &X: Childs)
+    {
+      X->_TC_Visiting = false;
+      X->_TC_Visited = false;
+    }
+    for (auto &X: Childs) TilingScanV(CList, X.get());
+
+    
+    // Pass 2: Horz & Vert Relocation
+    for (auto &X: CList)
+    {
+      // Start Pos
+      poit_i32 SPos = X->Poit;
+
 
       if (X->Anchors.Left.Active)
       {
-        if (X->Anchors.Left.Control == this)
-          TempP.X = 0;
+        const auto Ctrl = X->Anchors.Left.Control;
 
-        else
-          switch (X->Anchors.Left.Side)
-          {
-            case controlAnchorSide::casBegin:
-              TempP.X = X->Anchors.Left.Control -> Poit.X;
-              break;
 
-            case controlAnchorSide::casEnd:
-              TempP.X = (X->Anchors.Left.Control->Visible) ? (X->Anchors.Left.Control -> EndPoit.X):(X->Anchors.Left.Control -> Poit.X);
-              break;
-          }
+        if (Ctrl == this)
+          SPos.X = 0;
 
-        TempP.X += X->Margins.X1;
+        ef (Ctrl == Nil);
+
+        el switch (X->Anchors.Left.Side)
+        {
+          case controlAnchorSide::casBegin:
+            SPos.X = Ctrl->Poit.X;
+            break;
+
+          case controlAnchorSide::casEnd:
+            SPos.X = (Ctrl->Visible) ? (Ctrl->EndPoit.X):(Ctrl->Poit.X);
+            break;
+        }
+
+
+        if (Ctrl != Nil)
+          SPos.X += X->Margins.X1;
       }
 
       if (X->Anchors.Top.Active)
       {
-        if (X->Anchors.Top.Control == this)
-          TempP.Y = 0;
+        const auto Ctrl = X->Anchors.Top.Control;
 
-        else
-          switch (X->Anchors.Top.Side)
-          {
-            case controlAnchorSide::casBegin:
-              TempP.Y = X->Anchors.Top.Control -> Poit.Y;
-              break;
 
-            case controlAnchorSide::casEnd:
-              TempP.Y = (X->Anchors.Top.Control->Visible) ? (X->Anchors.Top.Control -> EndPoit.Y):(X->Anchors.Top.Control -> Poit.Y);
-              break;
-          }
+        if (Ctrl == this)
+          SPos.Y = 0;
 
-        TempP.Y += X->Margins.Y1;
+        ef (Ctrl == Nil);
+
+        el switch (X->Anchors.Top.Side)
+        {
+          case controlAnchorSide::casBegin:
+            SPos.Y = Ctrl->Poit.Y;
+            break;
+
+          case controlAnchorSide::casEnd:
+            SPos.Y = (Ctrl->Visible) ? (Ctrl->EndPoit.Y):(Ctrl->Poit.Y);
+            break;
+        }
+
+
+        if (Ctrl != Nil)
+          SPos.Y += X->Margins.Y1;
       }
 
 
-      
-      poit_i32 TempE = {TempP.X +X->Size.W, TempP.Y +X->Size.H};
+
+      // End Pos
+      size_i32 NSize = (X->AutoSize ? X->PreferedSize : X->Size);
+
+      NSize.W = max(X->MinSize.W, NSize.W);
+      NSize.H = max(X->MinSize.H, NSize.H);
+
+      if (X->MaxSize.W != 0) NSize.W = min(X->MaxSize.W, NSize.W);
+      if (X->MaxSize.H != 0) NSize.H = min(X->MaxSize.H, NSize.H);
+
+      poit_i32 EPos = {
+        .X = SPos.X +NSize.W,
+        .Y = SPos.Y +NSize.H,
+      };
+
 
       if (X->Anchors.Righ.Active)
       {
-        if (X->Anchors.Righ.Control == this)
-          TempE.X = Size.W;
+        const auto Ctrl = X->Anchors.Righ.Control;
 
-        else
-          switch (X->Anchors.Righ.Side)
-          {
-            case controlAnchorSide::casBegin:
-              TempE.X = (X->Anchors.Righ.Control->Visible) ? (X->Anchors.Righ.Control -> Poit.X):(X->Anchors.Righ.Control -> EndPoit.X);
-              break;
 
-            case controlAnchorSide::casEnd:
-              TempE.X = X->Anchors.Righ.Control -> EndPoit.X;
-              break;
-          }
+        if (Ctrl == this)
+          EPos.X = Size.W;
 
-        TempE.X -= X->Margins.X2;
+        ef (Ctrl == Nil);
+
+        el switch (X->Anchors.Righ.Side)
+        {
+          case controlAnchorSide::casBegin:
+            EPos.X = (Ctrl->Visible) ? (Ctrl->Poit.X):(Ctrl->EndPoit.X);
+            break;
+
+          case controlAnchorSide::casEnd:
+            EPos.X = Ctrl->EndPoit.X;
+            break;
+        }
+
+        if (Ctrl != Nil)
+          EPos.X -= X->Margins.X2;
       }
 
       if (X->Anchors.Bot.Active)
       {
-        if (X->Anchors.Bot.Control == this)
-          TempE.Y = Size.H;
+        const auto Ctrl = X->Anchors.Bot.Control;
 
-        else
-          switch (X->Anchors.Bot.Side)
-          {
-            case controlAnchorSide::casBegin:
-              TempE.Y = (X->Anchors.Bot.Control->Visible) ? (X->Anchors.Bot.Control -> Poit.Y):(X->Anchors.Bot.Control -> EndPoit.Y);
-              break;
 
-            case controlAnchorSide::casEnd:
-              TempE.Y = X->Anchors.Bot.Control -> EndPoit.Y;
-              break;
-          }
+        if (Ctrl == this)
+          EPos.Y = Size.H;
 
-        TempE.Y -= X->Margins.Y2;
+        ef (Ctrl == Nil);
+
+        el switch (X->Anchors.Bot.Side)
+        {
+          case controlAnchorSide::casBegin:
+            EPos.Y = (Ctrl->Visible) ? (Ctrl->Poit.Y):(Ctrl->EndPoit.Y);
+            break;
+
+          case controlAnchorSide::casEnd:
+            EPos.Y = Ctrl->EndPoit.Y;
+            break;
+        }
+
+        if (Ctrl != Nil)
+          EPos.Y -= X->Margins.Y2;
       }
 
 
-      if (!X->Anchors.Top.Active  && X->Anchors.Bot.Active)  TempP.Y = TempE.Y -X->Size.H;
-      if (!X->Anchors.Left.Active && X->Anchors.Righ.Active) TempP.X = TempE.X -X->Size.W;
+      // End Fixed
+      if (!X->Anchors.Left.Active && X->Anchors.Righ.Active) SPos.X = EPos.X -X->Size.W;
+      if (!X->Anchors.Top.Active  && X->Anchors.Bot.Active)  SPos.Y = EPos.Y -X->Size.H;
 
 
-      if (X->Poit.X != TempP.X || X->Poit.Y != TempP.Y)
+      // Set Attrs
+      if (X->Poit.X != SPos.X || X->Poit.Y != SPos.Y)
       {
-        X->Poit = TempP;
-        X->Flag_Add(MustRebound);
+        X->Poit = SPos;
+        X->Flag_Add(DirtyRebound);
       }
 
-      if (X->Size.W != TempE.X-TempP.X || X->Size.H != TempE.Y-TempP.Y)
+      if (X->Size.W != (EPos.X -SPos.X) || X->Size.H != (EPos.Y -SPos.Y))
       {
-        X->Size = {TempE.X-TempP.X, TempE.Y-TempP.Y};
-        X->Flag_Add(MustResize);
+        X->Size = {
+          .W = (EPos.X -SPos.X),
+          .H = (EPos.Y -SPos.Y),
+        };
+
+        X->Size.W = max(X->MinSize.W, X->Size.W);
+        X->Size.H = max(X->MinSize.H, X->Size.H);
+
+        if (X->MaxSize.W != 0) X->Size.W = min(X->MaxSize.W, X->Size.W);
+        if (X->MaxSize.H != 0) X->Size.H = min(X->MaxSize.H, X->Size.H);
+
+        X->Flag_Add(DirtyResize);
       }
 
+      if (X->Flag_HasR(DirtyResize))
+        X->Do_Resize();
+
+      if (X->Flag_HasR(DirtyRebound))
+        X->EndPoit = {
+          .X = X->Poit.X +X->Size.W,
+          .Y = X->Poit.Y +X->Size.H,
+        };
+
+      X->Do_Paint_prepare();
     }
 
-    
+
     // Calc Limit
     ClientBound = {0,0, Size.W, Size.H};
     for (auto &X: Childs)
@@ -490,37 +619,42 @@ namespace qcl
       if (X->EndPoit.Y > ClientBound.Y2)
         ClientBound.Y2 = X->EndPoit.Y;
     }
-
   }
+
 
   void view::Do_Paint_prepare()
   {
+    // Pass 1: Prepare & Calc Prefered Size
     for (auto &X: Childs)
     {
       if (!X->Visible)
         continue;
 
       X->Do_Paint_prepare();
+
+      if (X->AutoSize && X->Flag_HasR(DirtyAutoSize))
+      {
+        X->CalcAutoSize();
+        X->Flag_Rem(DirtyAutoSize);
+      }
     }
 
-    
-    if (ControlFlags & MustTiling)
-    {
+
+    // Pass 2: Tiling
+    if (Flag_HasR(DirtyTiling))
       Do_Tiling();
-      Flag_Rem(MustTiling);
-    }
 
 
-    for (auto &X: Childs)
-    {
-      if (!X->Visible)
-        continue;
+    // Pass 3: Final
+    if (Flag_HasR(DirtyResize))
+      Do_Resize();
 
-      X->Do_Paint_prepare();
-    }
+    if (Flag_HasR(DirtyRebound))
+      EndPoit = {
+        .X = Poit.X +Size.W,
+        .Y = Poit.Y +Size.H,
+      };
 
-    
-    control::Do_Paint_prepare();
   }
 
   void view::Do_Paint()
@@ -530,7 +664,7 @@ namespace qcl
       if (!X->Visible)
         continue;
 
-      if (X->ControlFlags & MustDraw)
+      if (X->DirtyFlags & DirtyDraw)
         X->Do_Paint();
     }
 
@@ -540,7 +674,7 @@ namespace qcl
 
   void view::Do_Resize()
   {
-    Flag_Add(MustTiling);
+    Flag_Add(DirtyTiling);
 
     control::Do_Resize();
   }

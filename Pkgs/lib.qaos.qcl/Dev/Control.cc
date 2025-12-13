@@ -82,8 +82,8 @@ namespace qcl
   {}
 
 
-  size_i32 control::CalcAutoSize()
-  { return {20,20}; }
+  void control::CalcAutoSize()
+  { PreferedSize = {20,20}; }
 
 
   poit_i32 GetLocalPos(view *Target, control *This)
@@ -127,7 +127,7 @@ namespace qcl
 
 
     Popup->Poit = GetLocalPos(Window, this) +poit_i32{(i32)Poit.X, (i32)Poit.Y};
-    Popup->Flag_Add(MustRebound);
+    Popup->Flag_Add(DirtyRebound);
     Window->Overlay = Popup;
   
 
@@ -147,7 +147,7 @@ namespace qcl
     return This;
   }
 
-  void control::DyeToRoot(controlFlags Flag)
+  void control::DyeToRoot(dirtyFlags Flag)
   {
     control* This = this;
     This->Flag_Add(Flag);
@@ -161,63 +161,48 @@ namespace qcl
   }
 
 
-  void control::Flag_Add(controlFlagSet Flag)
+  void control::Flag_Add(dirtyFlagSet Flag)
   {
-    ControlFlags |= Flag;
-
-    if (Flag & MustAutoSize)
-    {
-       // Flag_Add(MustResize); // Fix: Resize glitch
-    }
-
-    if (Flag & MustResize)
-      Flag_Add(MustRebound | MustTiling);
+    if (Flag & DirtyResize)
+      Flag |= (DirtyRebound | DirtyTiling);
 
       
-    if (Flag & MustTiling)
-      Flag_Add(MustDraw);
+    if (Flag & DirtyTiling)
+      Flag |= (DirtyDraw);
       
       
-    if (Flag & MustDraw)
+    if (Flag & (DirtyDraw))
     {
       control* This = this;
       
       while (This->Parent != Nil)
       {
         This = This->Parent;
-        This->Flag_Add(MustDraw);
+        This->DirtyFlags |= (DirtyDraw);
       }
     }
 
-    if (Flag & (MustResize | MustRebound))
+    if (Flag & (DirtyResize | DirtyRebound))
     {
       control* This = this;
       
       while (This->Parent != Nil)
       {
-        This = (control*)This->Parent; // Cast view* to control* safely? 
-        // Parent is of type `view*`. `view` inherits `control`.
-        // Let's verify view inheritance. 
-        // In Control.hh: `class view;` forward declaration. 
-        // Usually view inherits control.
-        // Let's check view definition. I don't see View.hh content but used View.cc. 
-        // Assuming view inherits control. 
-        // But `Parent` is `view*`.
-        
-        // Wait, I need to check `view` definition. 
-        // But assuming it is a control.
+        This = This->Parent;
         
         if (This->AutoSize)
-            This->Flag_Add(MustAutoSize);
+          This->DirtyFlags |= (DirtyAutoSize);
         
-        This->Flag_Add(MustTiling);
+        This->DirtyFlags |= (DirtyTiling | DirtyDraw);
       }
     }
+
+    DirtyFlags |= Flag;
   }
 
-  void control::Flag_Rem(controlFlagSet Flag)
+  void control::Flag_Rem(dirtyFlagSet Flag)
   {
-    ControlFlags &= ~Flag;
+    DirtyFlags &= ~Flag;
   }
 
 
@@ -319,7 +304,7 @@ namespace qcl
       if (auto Buf = Prop["y"]; !Buf.isNull())
         Poit.Y = (i64)Buf;
 
-      Flag_Add(MustRebound);
+      Flag_Add(DirtyRebound);
       return true;
     }
 
@@ -334,7 +319,37 @@ namespace qcl
       if (auto Buf = Prop["h"]; !Buf.isNull())
         Size.H = (i64)Buf;
 
-      Flag_Add(MustResize | MustRebound);
+      Flag_Add(DirtyResize | DirtyRebound);
+      return true;
+    }
+
+    ef (Name == "MinSize")
+    {
+      if (!Prop.isStruct())
+        return false;
+
+      if (auto Buf = Prop["w"]; !Buf.isNull())
+        MinSize.W = (i64)Buf;
+
+      if (auto Buf = Prop["h"]; !Buf.isNull())
+        MinSize.H = (i64)Buf;
+
+      //Flag_Add(DirtyResize | DirtyRebound);
+      return true;
+    }
+
+    ef (Name == "MaxSize")
+    {
+      if (!Prop.isStruct())
+        return false;
+
+      if (auto Buf = Prop["w"]; !Buf.isNull())
+        MaxSize.W = (i64)Buf;
+
+      if (auto Buf = Prop["h"]; !Buf.isNull())
+        MaxSize.H = (i64)Buf;
+
+      //Flag_Add(DirtyResize | DirtyRebound);
       return true;
     }
 
@@ -535,7 +550,7 @@ namespace qcl
 
   void control::Handler_Resize()
   {
-    Flag_Add(MustResize);
+    Flag_Add(DirtyResize);
   }
 
   void control::Handler_MouseDown(poit_i32 Pos, shiftStateSet Button, shiftStateSet State)
@@ -602,44 +617,19 @@ namespace qcl
 
     Surface->Flush();
 
-    Flag_Rem(MustDraw);
+    Flag_Rem(DirtyDraw);
   }
 
   void control::Do_Paint_prepare()
   {
-    if (AutoSize && (ControlFlags & MustAutoSize))
-    {
-      auto ASize = CalcAutoSize();
-
-      if (Anchors.Left.Active && Anchors.Righ.Active)
-        ASize.W = Size.W;
-
-      if (Anchors.Top.Active && Anchors.Bot.Active)
-        ASize.H = Size.H;
-
-      if (Size.W != ASize.W || Size.H != ASize.H)
-      {
-        Size = ASize;
-        Flag_Add(MustResize);
-      }
-      
-      Flag_Rem(MustAutoSize);
-    }
-
-    if (ControlFlags & MustResize)
-    {
+    if (Flag_HasR(DirtyResize))
       Do_Resize();
 
-      Flag_Rem(MustResize);
-    }
-
-    if (ControlFlags & MustRebound)
-    {
-      EndPoit.X = Poit.X +Size.W;
-      EndPoit.Y = Poit.Y +Size.H;
-
-      Flag_Rem(MustRebound);
-    }
+    if (Flag_HasR(DirtyRebound))
+      EndPoit = {
+        .X = Poit.X +Size.W,
+        .Y = Poit.Y +Size.H,
+      };
 
   }
 

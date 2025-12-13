@@ -9,6 +9,8 @@
   &name: "MainForm"
   &type: "qstd::form"
 
+  Size: {w: 800, h: 600}
+
   &subs: [
   { &name: "BarTop" &type: "qstd::layout"
 

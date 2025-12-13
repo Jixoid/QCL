@@ -59,7 +59,7 @@ extern "C" int qcl_entry2(shared_ptr<qcl::application> app)
 
 
   auto QDL = qcl::dyn::Load_FormFile(
-    "Pkgs/com.qcl.test/Des/Main.qdl", {
+    "Des/Main.qdl", {
 
     RegFunc(But1_OnClick)
     RegFunc(Nav_Menu)

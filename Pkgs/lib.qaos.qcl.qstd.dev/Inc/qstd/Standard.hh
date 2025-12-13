@@ -134,7 +134,7 @@ namespace qstd
     public:
       void Do_Tiling() override;
 
-      size_i32 CalcAutoSize() override;
+      void CalcAutoSize() override;
   };
 
   class layout_horz: public layout
@@ -147,7 +147,7 @@ namespace qstd
     public:
       void Do_Tiling() override;
 
-      size_i32 CalcAutoSize() override;
+      void CalcAutoSize() override;
   };
 
   class layout_flow: public layout
@@ -160,7 +160,7 @@ namespace qstd
     public:
       void Do_Tiling() override;
 
-      size_i32 CalcAutoSize() override;
+      void CalcAutoSize() override;
   };
 
 
@@ -195,7 +195,7 @@ namespace qstd
     public:
       void Draw() override;
 
-      size_i32 CalcAutoSize() override;
+      void CalcAutoSize() override;
 
       bool LoadProp(string Name, const jconf::Value& Prop) override;
   };

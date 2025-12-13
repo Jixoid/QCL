@@ -61,7 +61,7 @@ namespace qcl
 
     public:
       void Draw_after() override;
-      size_i32 CalcAutoSize() override;
+      void CalcAutoSize() override;
 
       virtual void Draw_ScrollVert();
       virtual void Draw_ScrollHorz();
@@ -70,6 +70,9 @@ namespace qcl
 
     public:
       virtual control* FindInput(poit_i32 Pos);
+
+      void TilingScanH(vector<control*> &HList, control *This);
+      void TilingScanV(vector<control*> &HList, control *This);
 
       virtual void Do_Tiling();
 

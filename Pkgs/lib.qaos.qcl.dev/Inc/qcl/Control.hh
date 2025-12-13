@@ -38,15 +38,15 @@ namespace qcl
   class popup; // Forward
 
 
-  enum controlFlags: u32
+  enum dirtyFlags: u32
   {
-    MustTiling   = (u32)1 << 0,
-    MustAutoSize = (u32)1 << 1,
-    MustResize   = (u32)1 << 2,
-    MustRebound  = (u32)1 << 3,
-    MustDraw     = (u32)1 << 4,
+    DirtyTiling   = (u32)1 << 0,
+    DirtyAutoSize = (u32)1 << 1,
+    DirtyResize   = (u32)1 << 2,
+    DirtyRebound  = (u32)1 << 3,
+    DirtyDraw     = (u32)1 << 4,
   };
-  using controlFlagSet = u32;
+  using dirtyFlagSet = u32;
 
 
   enum controlStates: u16
@@ -90,6 +90,8 @@ namespace qcl
 
   class control
   {
+    friend class view;
+
     public:
       control();
       virtual ~control();
@@ -99,6 +101,10 @@ namespace qcl
       poit_i32 Poit = {0, 0};
       size_i32 Size = {20, 10};
       poit_i32 EndPoit = {20,10};
+
+      size_i32 PreferedSize = {0,0};
+      size_i32 MinSize = {0,0};
+      size_i32 MaxSize = {0,0};
 
       view *Parent = Nil;
       
@@ -111,7 +117,7 @@ namespace qcl
       vector<string> Style;
       vector<shared_ptr<effect>> Effects;
 
-      controlFlagSet  ControlFlags = (MustDraw | MustAutoSize | MustTiling);
+      dirtyFlagSet DirtyFlags = (DirtyDraw | DirtyAutoSize | DirtyTiling);
       controlStateSet ControlState = 0;
 
       rect_i32 Margins = {0,0,0,0};
@@ -131,21 +137,32 @@ namespace qcl
       virtual void Draw_after();
       virtual void Draw();
 
-      virtual size_i32 CalcAutoSize();
+      virtual void CalcAutoSize();
 
       bool Show_Popup(poit_f32 Poit);
 
       control* GetRoot();
-      void DyeToRoot(controlFlags Flag = MustDraw);
+      void DyeToRoot(dirtyFlags Flag = DirtyDraw);
 
-      void Flag_Add(controlFlagSet Flag);
-      void Flag_Rem(controlFlagSet Flag);
+      inline bool CanAutoSizeVert() {return AutoSize && !(Anchors.Left.Active && Anchors.Righ.Active);}
+      inline bool CanAutoSizeHorz() {return AutoSize && !(Anchors.Top.Active && Anchors.Bot.Active);}
+      inline bool CanAutoSize() {return AutoSize && !((Anchors.Left.Active && Anchors.Righ.Active) || (Anchors.Top.Active && Anchors.Bot.Active));}
+
+      void Flag_Add (dirtyFlagSet Flag);
+      void Flag_Rem (dirtyFlagSet Flag);
+      inline bool Flag_Has (dirtyFlagSet Flag) {return (DirtyFlags & Flag);}
+      inline bool Flag_HasR(dirtyFlagSet Flag) {bool ret = (DirtyFlags & Flag); Flag_Rem(Flag); return ret;}
 
 
       virtual bool LoadProp(string Name, const jconf::Value& Prop);
       virtual bool LoadFunc(string Name, point Func);
       
 
+    protected:
+      bool _TC_Visited = false;
+      bool _TC_Visiting = false;
+      
+      
     public:
       void (*OnPaint)       (qcl::control*) = Nil;
       void (*OnPaint_before)(qcl::control*) = Nil;
