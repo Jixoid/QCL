@@ -56,7 +56,6 @@ struct x11_handle
   int      screen;
   GC       gc;
   int      width, height;
-  int      lastW, lastH;
   int      posX, posY;
 
   Pixmap Buf1 = 0, Buf2 = 0;
@@ -148,7 +147,7 @@ struct x11_message  // Max 20b  // using 17b
 };
 
 
-#define XSelect (ExposureMask | ButtonPressMask  | ButtonReleaseMask | KeyPressMask | KeyReleaseMask | PointerMotionMask | StructureNotifyMask)
+#define XSelect (ExposureMask | ButtonPressMask  | ButtonReleaseMask | KeyPressMask | KeyReleaseMask | PointerMotionMask | StructureNotifyMask | PropertyChangeMask)
 
 #define __CurrentApp ((app_handle*)CurrentApp->OHID)
 
@@ -1237,6 +1236,74 @@ namespace qcl::platform::application
         break;
       }
 
+      case PropertyNotify: // Property
+      {
+        if (Atom NET_WM_STATE = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE", False); Ev.xproperty.atom == NET_WM_STATE)
+        {
+          Atom ActualType;
+          int ActualFormat;
+          unsigned long NItems, BytesAfter;
+          u8 *Prop = Nil;
+
+          Atom
+            A_FullScr = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE_FULLSCREEN", False),
+            A_MaxVert = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False),
+            A_MaxHorz = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False),
+            A_Hidden  = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE_HIDDEN", False),
+            A_Focused = XInternAtom(__CurrentApp->dpy, "_NET_WM_STATE_FOCUSED", False);
+
+        
+          if (XGetWindowProperty(
+            __CurrentApp->dpy, ((x11_handle*)CWin->OHID)->window,
+            NET_WM_STATE, 0, 1024, False, XA_ATOM,
+            &ActualType, &ActualFormat, &NItems, &BytesAfter, &Prop
+          ) == Success)
+          {
+            Atom *Atoms = (Atom*)Prop;
+            bool
+              Is_FullScr = false,
+              Is_MaxVert = false,
+              Is_MaxHorz = false,
+              Is_Hidden  = false,
+              Is_Focused = false;
+
+            for (unsigned long i = 0; i < NItems; i++)
+              if (Atoms[i] == A_FullScr) Is_FullScr = true;
+              ef (Atoms[i] == A_MaxVert) Is_MaxVert = true;
+              ef (Atoms[i] == A_MaxHorz) Is_MaxHorz = true;
+              ef (Atoms[i] == A_Hidden)  Is_Hidden  = true;
+              ef (Atoms[i] == A_Focused) Is_Focused = true;
+
+
+            l_Change_WinState: {
+              windowStates Temp = windowStates::wsNormal;
+
+              if (Is_FullScr)
+                Temp = windowStates::wsFullSrc;
+              ef (Is_Hidden)
+                Temp = windowStates::wsMinimized;
+              ef (Is_MaxVert && Is_MaxHorz)
+                Temp = windowStates::wsMaximized;
+
+
+              if (Temp != CWin->WindowState)
+                CWin->Handler_WindowStateChanged(Temp);
+            }
+
+            l_Change_Focus: {
+
+              if (Is_Focused != bool(CWin->ControlState & controlStates::csFocus))
+                CWin->Handler_StateChanged((CWin->ControlState & ~controlStates::csFocus) | (Is_Focused ? controlStates::csFocus : 0));
+            }
+            
+            if (Prop)
+              XFree(Prop);
+          }
+        }
+
+        break;
+      }
+
       case ConfigureNotify: // Configure: Resize (change bounds)
       {
         while (XCheckTypedWindowEvent(Native->dpy, Ev.xconfigure.window, ConfigureNotify, &Ev));
@@ -1244,11 +1311,10 @@ namespace qcl::platform::application
         ((x11_handle*)CWin->OHID)->posX = Ev.xconfigure.x;
         ((x11_handle*)CWin->OHID)->posY = Ev.xconfigure.y;
 
-        if (Ev.xconfigure.width != ((x11_handle*)CWin->OHID)->lastW || Ev.xconfigure.height != ((x11_handle*)CWin->OHID)->lastH)
+        if (Ev.xconfigure.width != CWin->Size.W || Ev.xconfigure.height != CWin->Size.H)
         {
-          // Size / LastWH
-          ((x11_handle*)CWin->OHID)->lastW = CWin->Size.W;
-          ((x11_handle*)CWin->OHID)->lastH = CWin->Size.H;
+          cerr << "QCL.RESIZE" << endl;
+          // Size
           CWin->Size = {Ev.xconfigure.width, Ev.xconfigure.height};
 
           ((x11_handle*)CWin->OHID)->width  = CWin->Size.W;
@@ -1282,8 +1348,6 @@ namespace qcl::platform::application
           // Events
           CWin->Handler_Resize();
           CWin->Handler_Paint();
-
-          //this_thread::sleep_for(300ms);
         }
 
         while (XCheckTypedWindowEvent(Native->dpy, Ev.xconfigure.window, Expose, &Ev));

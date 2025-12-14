@@ -14,11 +14,7 @@
 #define el else
 #define ef else if
 
-#include <iostream>
 #include <memory>
-#include <vector>
-#include <cmath>
-#include <ranges>
 
 #include "Basis.h"
 
@@ -124,6 +120,21 @@ namespace qcl
       Surface->Set_Source(Overlay->Surface);
       Surface->Paint();
     }
+  }
+
+
+
+  void window::Handler_WindowStateChanged(windowStates State)
+  {
+    WindowState = State;
+
+    Do_WindowStateChanged(State);
+  }
+
+  void window::Do_WindowStateChanged(windowStates State)
+  {
+    if (OnWindowStateChanged != Nil)
+      OnWindowStateChanged(this, State);
   }
 
 }

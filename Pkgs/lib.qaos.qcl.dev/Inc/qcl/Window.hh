@@ -13,10 +13,7 @@
 
 #pragma once
 
-#include <iostream>
 #include <memory>
-#include <vector>
-#include <cmath>
 
 #include "Basis.h"
 
@@ -31,6 +28,14 @@ using namespace jix;
 
 namespace qcl
 {
+  enum windowStates: u32
+  {
+    wsNormal    = 0,
+    wsFullSrc   = 1,
+    wsMaximized = 2,
+    wsMinimized = 3,
+  };
+
 
   class window: public view
   {
@@ -41,6 +46,8 @@ namespace qcl
 
     public:
       handle OHID;
+
+      windowStates WindowState = windowStates::wsNormal;
 
       shared_ptr<control> Overlay;
       
@@ -53,6 +60,15 @@ namespace qcl
       control* FindInput(poit_i32 Pos) override;
 
       void Do_MouseDown(poit_i32 Pos, shiftStateSet Button, shiftStateSet State) override;
+
+    public:
+      void (*OnWindowStateChanged)(qcl::control*, windowStates State) = Nil;
+
+
+      virtual void Handler_WindowStateChanged(windowStates State);
+
+
+      virtual void Do_WindowStateChanged(windowStates State);
   };
 
 }
