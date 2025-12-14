@@ -1,4 +1,8 @@
 
+### v0.7.3:1 [Main Daily]
+  - Removed Debug Codes
+
+___
 ## v0.7.3:0 [Main Daily]
   - Added: Window State
   - Fixed: Resize, Window State Changed

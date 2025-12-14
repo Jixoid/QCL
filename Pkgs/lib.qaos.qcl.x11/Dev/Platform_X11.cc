@@ -1313,7 +1313,6 @@ namespace qcl::platform::application
 
         if (Ev.xconfigure.width != CWin->Size.W || Ev.xconfigure.height != CWin->Size.H)
         {
-          cerr << "QCL.RESIZE" << endl;
           // Size
           CWin->Size = {Ev.xconfigure.width, Ev.xconfigure.height};
 
